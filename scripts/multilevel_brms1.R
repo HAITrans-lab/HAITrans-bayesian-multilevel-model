@@ -19,13 +19,20 @@ library(assertthat)
 library(report)
 library(ggpubr)
 library(rstatix)
-library(mixedup)
+#library(mixedup)
 
 set.seed(1234) #reproducibility
 bayes_seed <- 1234
 eyetracking <- read.csv('/home/mrios/workspace/test_R/ANOVA_table3.xlsx - Sheet1.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
+
+#summary stats
+stats <- eyetracking %>%
+  group_by(condition, text) %>%
+  get_summary_stats(quality_score, type = "mean_sd")
+stats
+write.csv(stats,'/home/mrios/workspace/test_R/quality/summary_stats.csv')
 
 ####
 #model condition
@@ -34,13 +41,13 @@ eyetracking %>% sample_n_by(condition, text, size = 1)
 fit0 <- brm(formula = quality_score ~ 1 + condition, #(1 + condition | participant)
             data = eyetracking,
             warmup = 1000, iter = 5000, chains = 4, cores = 6,
-            control=list(adapt_delta=0.99), seed = bayes_seed
+            seed = bayes_seed
 )
 fit0
 text_summ <-summary(fit0)
 sink("/home/mrios/workspace/test_R/quality/multilevel_brms0_summary.txt")
 text_summ
-tidy(fit0)
+#tidy(fit0)
 sink()
 #sjPlot::tab_model(fit1)
 fit0
@@ -51,7 +58,7 @@ plot(fit0)
 pp_check(fit0)
 
 fixef(fit0)
-coef(fit0)  #coef(fit1)$condition TODO
+#coef(fit0)  #coef(fit1)$condition TODO
 
 conditional_effects(fit0)
 
@@ -83,7 +90,7 @@ fit1
 text_summ <-summary(fit1)
 sink("/home/mrios/workspace/test_R/quality/multilevel_brms1_summary.txt")
 text_summ
-tidy(fit1)
+#tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit1
@@ -141,7 +148,7 @@ fit2 <- brm(formula = quality_score ~ 1 + condition + text + (1 + condition | pa
 )
 fit2
 text_summ <-summary(fit2)
-sink("'/home/mrios/workspace/test_R/quality/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/test_R/quality/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -164,7 +171,7 @@ conditional_effects(fit2)
 loo2 <- loo(fit2)
 
 
-loo_compare(loo1, loo2)
+loo_compare(loo0, loo1, loo2)
 
 
 (model_fit <- eyetracking %>%
