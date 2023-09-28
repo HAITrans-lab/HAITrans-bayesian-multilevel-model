@@ -122,7 +122,7 @@ loo_compare(loo0, loo0b)
 fit1 <- brm(formula = MFD_ST ~ 1 + condition + text + (1 + condition | text), #(1 + condition | participant)
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
-            control=list(adapt_delta=0.9), seed = bayes_seed,
+            control=list(adapt_delta=0.99), seed = bayes_seed,
             backend = "cmdstanr"
             )
 fit1
@@ -232,7 +232,7 @@ pp_check(fit2)
 fixef(fit2)
 coef(fit2) 
 extract_random_effects(fit2)
-
+print(extract_random_effects(fit2), n=36)
 
 conditional_effects(fit2)
 
@@ -245,7 +245,7 @@ loo_compare(loo0, loo0b, loo1, loo2)
 
 (model_fit <- eyetracking %>%
     add_predicted_draws(fit2) %>%  # adding the posterior distribution
-    ggplot(aes(x = text, y = cog_load)) +  
+    ggplot(aes(x = text, y = MFD_ST)) +  
     stat_lineribbon(aes(y = .prediction), .width = c(.95, .80, .50),  # regression line and CI
                     alpha = 0.5, colour = "black") +
     geom_point(data = eyetracking, colour = "darkseagreen4", size = 3) +   # raw data
