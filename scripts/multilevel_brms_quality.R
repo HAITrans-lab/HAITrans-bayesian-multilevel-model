@@ -3,6 +3,9 @@ library(cmdstanr)
 library(tidyverse)
 library(sjPlot)
 #install.packages("tidybayes")
+#install.packages('devtools')
+#devtools::install_github("mvuorre/brmstools")
+library(brmstools)
 library(tidybayes)
 library(sjstats)
 library(gapminder)
@@ -197,6 +200,7 @@ coef(fit1)$text %>%
   filter(text %in% eyetracking$text) %>% 
   select(text, starts_with("Estimate"))
 
+forest(fit1, pars='conditions')
 
 
 ####
@@ -281,6 +285,6 @@ coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
+forest(fit2, pars='conditions')
 
-
-
+sessionInfo()
