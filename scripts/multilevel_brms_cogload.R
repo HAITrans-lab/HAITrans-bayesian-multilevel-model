@@ -3,6 +3,7 @@ library(cmdstanr)
 library(tidyverse)
 library(sjPlot)
 #install.packages("tidybayes")
+library(brmstools)
 library(tidybayes)
 library(sjstats)
 library(gapminder)
@@ -26,6 +27,9 @@ library(broom.mixed)
 library(ggplot2)
 library(dplyr)
 library(ggh4x)
+library(ggdist)
+library("bayestestR")
+
 
 
 set.seed(1234) #reproducibility
@@ -42,7 +46,7 @@ stats <- eyetracking %>%
   group_by(condition, text) %>%
   get_summary_stats(MFD_ST, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/test_R/cog_load/summary_stats.csv')
+write.csv(stats,'/home/mrios/workspace/test_R/cog_load/summary_stats_st.csv')
 
 ##
 #condition model
@@ -78,6 +82,9 @@ loo0 <- loo(fit0)
 loo0
 
 tidy(fit0)
+tidy(fit0)
+describe_posterior(fit0)
+bayestestR::hdi(fit0)
 ###
 #MFD_ST ~ 1 + condition + text 
 ###
@@ -115,6 +122,10 @@ loo0b
 tidy(fit0b)
 
 loo_compare(loo0, loo0b)
+
+tidy(fit0b)
+describe_posterior(fit0b)
+bayestestR::hdi(fit0b)
 ##
 #multilevel MFD_ST ~ 1 + condition + text + (1 + condition | text)
 ##
@@ -199,7 +210,21 @@ coef(fit1)$text %>%
   filter(text %in% eyetracking$text) %>% 
   select(text, starts_with("Estimate"))
 
+forest(fit1, pars='conditions')
 
+tidy(fit1)
+describe_posterior(fit1)
+bayestestR::hdi(fit1)
+#-6.28, 6.28
+condition_draws <- fit1 %>%
+  spread_draws(b_conditions)
+
+ggplot(condition_draws, aes(x = b_conditions)) +
+  stat_halfeye(aes(fill_ramp = stat(x >= 6.28 | x <= -6.28)), fill = "#CCCCCC") +
+  scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
+  annotate(geom = "rect", xmin = -6.28, xmax = 6.28, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
+  annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
+  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
 
 ####
 #model participant
@@ -212,6 +237,7 @@ fit2 <- brm(formula = MFD_ST ~ 1 + condition + text + (1 + condition | participa
             backend = "cmdstanr"
             )
 fit2
+tab_model(fit2)
 text_summ <-summary(fit2)
 sink("/home/mrios/workspace/test_R/cog_load/multilevel_brms2_summary.txt")
 text_summ
@@ -239,8 +265,11 @@ conditional_effects(fit2)
 
 loo2 <- loo(fit2)
 
-loo_compare(loo1, loo2)
-loo_compare(loo0, loo0b, loo1, loo2)
+loo_cpm <- loo_compare(loo1, loo2)
+loo_cpm
+write.csv(loo_cpm, '/home/mrios/workspace/test_R/cog_load/multilevel_brms_loo_cpm_ts1-2.csv')
+#loo_compare(loo1, loo2)
+#loo_compare(loo0, loo0b, loo1, loo2)
 
 
 (model_fit <- eyetracking %>%
@@ -282,5 +311,29 @@ coef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 
+forest(fit2, pars='conditions')
 
+tidy(fit2)
+describe_posterior(fit2)
+bayestestR::hdi(fit2)
+#-6.28, 6.28
+condition_draws <- fit2 %>%
+  spread_draws(b_conditions)
+
+condition_cred_int <- condition_draws %>% 
+  median_hdi()
+condition_cred_int$.lower
+
+
+condition_draws %>% 
+  # Only look inside the credible interval
+  filter(b_conditions >= condition_cred_int$.lower & b_conditions <= condition_cred_int$.upper) %>% 
+  summarize(prop_outside_rope = 1 - sum(b_conditions >= -6.28 & b_conditions <= 6.28) / n())
+
+ggplot(condition_draws, aes(x = b_conditions)) +
+  stat_halfeye(aes(fill_ramp = stat(x >= 6.28 | x <= -6.28)), fill = "#CCCCCC") +
+  scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
+  annotate(geom = "rect", xmin = -6.28, xmax = 6.28, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
+  annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
+  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
 
