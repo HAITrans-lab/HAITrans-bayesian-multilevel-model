@@ -39,7 +39,8 @@ eyetracking <- read.csv('/home/mrios/workspace/test_R/quality_cogload_table.csv'
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
 #delete NA
-eyetracking <- na.omit(eyetracking)
+#eyetracking <- na.omit(eyetracking)
+eyetracking <- eyetracking[!(is.na(eyetracking$MFD_ST)), ]
 colnames(eyetracking)
 #summary stats
 stats <- eyetracking %>%
@@ -236,6 +237,7 @@ fit2 <- brm(formula = MFD_ST ~ 1 + condition + text + (1 + condition | participa
             control=list(adapt_delta=0.9), seed = bayes_seed,
             backend = "cmdstanr"
             )
+
 fit2
 tab_model(fit2)
 text_summ <-summary(fit2)
@@ -328,12 +330,12 @@ condition_cred_int$.lower
 condition_draws %>% 
   # Only look inside the credible interval
   filter(b_conditions >= condition_cred_int$.lower & b_conditions <= condition_cred_int$.upper) %>% 
-  summarize(prop_outside_rope = 1 - sum(b_conditions >= -6.28 & b_conditions <= 6.28) / n())
+  summarize(prop_outside_rope = 1 - sum(b_conditions >= -6.14 & b_conditions <= 6.14) / n())
 
 ggplot(condition_draws, aes(x = b_conditions)) +
-  stat_halfeye(aes(fill_ramp = stat(x >= 6.28 | x <= -6.28)), fill = "#CCCCCC") +
+  stat_halfeye(aes(fill_ramp = stat(x >= 6.14 | x <= -6.14)), fill = "#CCCCCC") +
   scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
-  annotate(geom = "rect", xmin = -6.28, xmax = 6.28, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
+  annotate(geom = "rect", xmin = -6.14, xmax = 6.14, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
   annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
   labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
 
