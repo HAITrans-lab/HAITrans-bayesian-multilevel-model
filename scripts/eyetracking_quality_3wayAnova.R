@@ -10,30 +10,30 @@ library(kableExtra)
 
 # long format
 set.seed(123) #reproducibility
-eyetracking <- read.csv('/home/mrios/workspace/test_R/ANOVA_table3.xlsx - Sheet1.csv', header = TRUE, sep = ",")
+eyetracking <- read.csv('/home/mrios/workspace/test_R/big_data/Big_data_en-de.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
 
-
+colnames(eyetracking)
 #summary stats
 stats <- eyetracking %>%
   group_by(condition, text) %>%
-  get_summary_stats(quality_score, type = "mean_sd")
+  get_summary_stats(productivity_HAITrans_PE_speed, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/test_R/quality/summary_stats.csv')
+write.csv(stats,'/home/mrios/workspace/test_R/big_data/summary_stats.csv')
 #viz
 bxp <- ggboxplot(
-  eyetracking, x = "text", y = "quality_score",
+  eyetracking, x = "text", y = "productivity_HAITrans_PE_speed",
   facet.by = "condition", short.panel.labs = FALSE
 )
 bxp
-ggsave("/home/mrios/workspace/test_R/quality/2wayaov_boxplot_quality.pdf")
+ggsave("/home/mrios/workspace/test_R/big_data/2wayaov_boxplot_mfdtt_en-de.pdf")
 
-results <- aov(quality_score ~ condition * text , data = eyetracking)
+results <- aov(productivity_HAITrans_PE_speed ~ condition * text , data = eyetracking)
 anova(results)
 report(results)
 report_aov <- report_text(results)
-write.csv(report_aov,'/home/mrios/workspace/test_R/quality/report_aov.csv')
+write.csv(report_aov,'/home/mrios/workspace/test_R/big_data/report_aov.csv')
 
 
 #twoway.model <- lm(quality_score ~ condition*text, data = eyetracking)
@@ -41,26 +41,26 @@ write.csv(report_aov,'/home/mrios/workspace/test_R/quality/report_aov.csv')
 
 pwc <- eyetracking %>%
   pairwise_t_test(
-    quality_score ~ condition, paired = TRUE,
+    productivity_HAITrans_PE_speed ~ condition, paired = TRUE,
     p.adjust.method = "bonferroni"
   )
 pwc
-write.csv(pwc,'/home/mrios/workspace/test_R/quality/pairwise_ttest_condition.csv')
+write.csv(pwc,'/home/mrios/workspace/test_R/big_data/pairwise_ttest_condition.csv')
 
 pwc <- eyetracking %>%
   pairwise_t_test(
-    quality_score ~ text, paired = TRUE,
+    productivity_HAITrans_PE_speed ~ text, paired = TRUE,
     p.adjust.method = "bonferroni"
   )
 pwc
-write.csv(pwc,'/home/mrios/workspace/test_R/quality/pairwise_ttest_text.csv')
+write.csv(pwc,'/home/mrios/workspace/test_R/big_data/pairwise_ttest_text.csv')
 
-linear_model <- lm(quality_score ~ text*condition, data=eyetracking) 
+linear_model <- lm(productivity_HAITrans_PE_speed ~ text*condition, data=eyetracking) 
 summary(linear_model)
 
 pwc <- eyetracking %>%
   group_by(text) %>%
-  emmeans_test(quality_score ~ condition, p.adjust.method = "bonferroni") %>%
+  emmeans_test(productivity_HAITrans_PE_speed ~ condition, p.adjust.method = "bonferroni") %>%
   select(-df, -statistic, -p) # Remove details
 summary(pwc)
 pwc %>%
@@ -72,11 +72,11 @@ pwc %>%
 
 pwc <- eyetracking %>%
   group_by(condition) %>%
-  emmeans_test(quality_score ~ text, p.adjust.method = "bonferroni") %>%
+  emmeans_test(productivity_HAITrans_PE_speed ~ text, p.adjust.method = "bonferroni") %>%
   select(-df, -statistic, -p) # Remove details
 summary(pwc)
 pwc
-write.csv(pwc,'/home/mrios/workspace/test_R/quality/pairwise_ttest_conditiontext1.csv')
+write.csv(pwc,'/home/mrios/workspace/test_R/big_data/pairwise_ttest_conditiontext1.csv')
 pwc %>%
   kbl(caption = "Pairwise comparisons") %>% 
   kable_material_dark()
@@ -87,16 +87,16 @@ pwc %>%
 pwc <- eyetracking %>%
   group_by(condition) %>%
   pairwise_t_test(
-    quality_score ~ text, 
+    productivity_HAITrans_PE_speed ~ text, 
     p.adjust.method = "bonferroni"
   )
 pwc
-write.csv(pwc,'/home/mrios/workspace/test_R/quality/pairwise_ttest_conditiontext2.csv')
+write.csv(pwc,'/home/mrios/workspace/test_R/big_data/pairwise_ttest_conditiontext2.csv')
 
 eyetracking
 one.way <- eyetracking %>%
   group_by(condition) %>%
-  anova_test(dv = quality_score, wid = participant, within = text) %>%
+  anova_test(dv = productivity_HAITrans_PE_speed, wid = participant, within = text) %>%
   get_anova_table() %>%
   adjust_pvalue(method = "bonferroni")
 one.way
