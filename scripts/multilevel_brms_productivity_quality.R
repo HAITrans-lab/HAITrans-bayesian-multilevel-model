@@ -35,6 +35,7 @@ library("bayestestR")
 set.seed(1234) #reproducibility
 bayes_seed <- 1234
 #set_cmdstan_path(path = '/home/mrios/.cmdstan/cmdstan-2.32.2')
+#NOTE: /home/mrios/workspace/test_R/prod_cogload_quality_results.csv'
 eyetracking <- read.csv('/home/mrios/workspace/test_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
@@ -123,9 +124,9 @@ ggplot(condition_draws, aes(x = b_conditions)) +
 #MFD_ST ~ 1 + condition + text 
 ###
 
-fit0b <- brm(formula = pemt_speed ~ 1 + condition + text, #(1 + condition | participant)
+fit0b <- brm(formula = pemt_speed ~ 1 + condition + text + quality_score, #(1 + condition | participant)
             data = eyetracking,
-            warmup = 1000, iter = 5000, chains = 4, cores = 6,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
             seed = bayes_seed,
             backend = "cmdstanr"
 )
@@ -289,7 +290,7 @@ ggplot(condition_draws, aes(x = b_conditions)) +
 #model participant
 #MFD_ST ~ 1 + condition + text + (1 + condition | participant)
 ####
-fit2 <- brm(formula = quality_score ~ 1 + condition + pemt_speed + (1 + condition + pemt_speed | participant), 
+fit2 <- brm(formula = quality_score ~ 1 + pemt_speed + (1 | condition), 
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
             control=list(adapt_delta=0.9), seed = bayes_seed,
@@ -297,6 +298,7 @@ fit2 <- brm(formula = quality_score ~ 1 + condition + pemt_speed + (1 + conditio
             )
 fit2
 tab_model(fit2)
+panels(fit2, xvar = "conditions")
 text_summ <-summary(fit2)
 sink("/home/mrios/workspace/test_R/prod_quality/multilevel_brms2_summary.txt")
 text_summ
@@ -319,8 +321,8 @@ coef(fit2)
 extract_random_effects(fit2)
 print(extract_random_effects(fit2), n=63)
 
-conditional_effects(fit2, effects = 'condition:participant', re_formula=NULL)
-conditional_effects(fit2, effects = 'pemt_speed:participant', re_formula=NULL)
+#conditional_effects(fit2, effects = 'condition:participant', re_formula=NULL)
+conditional_effects(fit2, effects = 'pemt_speed:condition', re_formula=NULL)
 
 loo2 <- loo(fit2)
 
@@ -402,15 +404,15 @@ ggplot(condition_draws, aes(x = b_conditions)) +
 #####
 #fit 3
 #####
-
-fit3 <- brm(formula = quality_score ~ 1 + condition + pemt_speed + (1 + pemt_speed | condition), 
+#quality_score ~ 1 + condition + pemt_speed + (1 + pemt_speed | condition) TODO???
+fit3 <- brm(formula = quality_score ~ 1 + pemt_speed + (1 + pemt_speed | condition), 
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
-            control=list(adapt_delta=0.9), seed = bayes_seed,
+            control=list(adapt_delta=0.99), seed = bayes_seed,
             backend = "cmdstanr"
 )
 fit3
-tab_model(fit3)
+#tab_model(fit3)
 text_summ <-summary(fit3)
 sink("/home/mrios/workspace/test_R/prod_quality/multilevel_brms3_summary.txt")
 text_summ
@@ -432,7 +434,7 @@ fixef(fit3)
 coef(fit3) 
 extract_random_effects(fit3)
 #print(extract_random_effects(fit3), n=63)
-
+conditional_effects(fit3)
 conditional_effects(fit3, effects="pemt_speed:condition", re_formula = NULL)
 
 
@@ -460,7 +462,7 @@ condition_participant_offsets3 <- coef(fit3)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 print(condition_participant_offsets2, n=32)
-forest(fit2, pars='conditions')
+forest(fit3, pars='conditions')
 #forest(fit2, pars='pemt_speed')
 
 tidy(fit3)

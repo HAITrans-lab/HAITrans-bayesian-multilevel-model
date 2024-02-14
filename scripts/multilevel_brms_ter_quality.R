@@ -40,27 +40,28 @@ eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
 #delete NA
 #eyetracking <- na.omit(eyetracking, cols=c('productivity_Matecat'))
-eyetracking <- eyetracking[!(is.na(eyetracking$pemt_speed)), ]
+#eyetracking <- eyetracking[!(is.na(eyetracking$pemt_speed)), ]
+#eyetracking <- eyetracking[!(is.na(eyetracking$pemt_speed)), ]
 
 colnames(eyetracking)
 #summary stats
 stats <- eyetracking %>%
   group_by(condition, text) %>%
-  get_summary_stats(pemt_speed, type = "mean_sd")
-stats
-write.csv(stats,'/home/mrios/workspace/test_R/prod_haitrans/summary_stats_st.csv')
+  get_summary_stats(ter_corpus_score, type = "mean_sd")
+print(stats, n=83)
+write.csv(stats,'/home/mrios/workspace/test_R/ter_quality/summary_stats.csv')
 
 
-bxp <- ggboxplot(
-  eyetracking, x = "text", y = "pemt_speed",
-  facet.by = "condition", short.panel.labs = FALSE
-)
-bxp
-#ggsave("/home/mrios/workspace/test_R/prod_haitrans/boxplot_pemtspeed.pdf")
+#bxp <- ggboxplot(
+#  eyetracking, x = "text", y = "pemt_speed",
+#  facet.by = "condition", short.panel.labs = FALSE
+#)
+#bxp
+#ggsave("/home/mrios/workspace/test_R/prod_quality/boxplot_pemtspeed.pdf")
 ##
 #condition model
 ##
-fit0 <- brm(formula = pemt_speed ~ 1 + condition, #(1 + condition | participant)
+fit0 <- brm(formula = ter_corpus_score ~ 1 + pemt_speed, #(1 + condition | participant)
             data = eyetracking,
             warmup = 1000, iter = 5000, chains = 4, cores = 6,
             seed = bayes_seed,
@@ -68,14 +69,14 @@ fit0 <- brm(formula = pemt_speed ~ 1 + condition, #(1 + condition | participant)
 )
 fit0
 text_summ <-summary(fit0)
-sink("/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms0_summary.txt")
+sink("/home/mrios/workspace/test_R/ter_quality/multilevel_brms0_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0
 p_summary <- posterior_summary(fit0)
-write.csv(p_summary, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms0_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms0_psummary.csv')
 
 plot(fit0)
 pp_check(fit0)
@@ -123,7 +124,7 @@ ggplot(condition_draws, aes(x = b_conditions)) +
 #MFD_ST ~ 1 + condition + text 
 ###
 
-fit0b <- brm(formula = pemt_speed ~ 1 + condition + text, #(1 + condition | participant)
+fit0b <- brm(formula = ter_corpus_score ~ 1 + condition + text + pemt_speed, #(1 + condition | participant)
             data = eyetracking,
             warmup = 1000, iter = 5000, chains = 4, cores = 6,
             seed = bayes_seed,
@@ -131,14 +132,14 @@ fit0b <- brm(formula = pemt_speed ~ 1 + condition + text, #(1 + condition | part
 )
 fit0b
 text_summ <-summary(fit0b)
-sink("/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms0b_summary.txt")
+sink("/home/mrios/workspace/test_R/ter_quality/multilevel_brms0b_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0b
 p_summary <- posterior_summary(fit0b)
-write.csv(p_summary, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms0b_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms0b_psummary.csv')
 
 plot(fit0b)
 pp_check(fit0b)
@@ -175,12 +176,12 @@ condition_cred_int$.lower
 condition_draws %>% 
   # Only look inside the credible interval
   filter(b_conditions >= condition_cred_int$.lower & b_conditions <= condition_cred_int$.upper) %>% 
-  summarize(prop_outside_rope = 1 - sum(b_conditions >= -31.39 & b_conditions <= 31.39) / n())
+  summarize(prop_outside_rope = 1 - sum(b_conditions >= -1.41 & b_conditions <= 1.41) / n())
 #-564.52, 564.52
 ggplot(condition_draws, aes(x = b_conditions)) +
-  stat_halfeye(aes(fill_ramp = stat(x >= 31.39 | x <= -31.39)), fill = "#CCCCCC") +
+  stat_halfeye(aes(fill_ramp = stat(x >= 1.41 | x <= -1.41)), fill = "#CCCCCC") +
   scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
-  annotate(geom = "rect", xmin = -31.39, xmax = 31.39, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
+  annotate(geom = "rect", xmin = -1.41, xmax = 1.41, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
   annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
   labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
 
@@ -189,7 +190,7 @@ ggplot(condition_draws, aes(x = b_conditions)) +
 #multilevel MFD_ST ~ 1 + condition + text + (1 + condition | text)
 ##
 
-fit1 <- brm(formula = pemt_speed ~ 1 + condition + text + (1 + condition | text), #(1 + condition | participant)
+fit1 <- brm(formula = ter_corpus_score ~ 1 + condition + text + (1 + condition | text), #(1 + condition | participant)
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
             control=list(adapt_delta=0.99), seed = bayes_seed,
@@ -197,17 +198,17 @@ fit1 <- brm(formula = pemt_speed ~ 1 + condition + text + (1 + condition | text)
             )
 fit1
 text_summ <-summary(fit1)
-sink("/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms1_summary.txt")
+sink("/home/mrios/workspace/test_R/ter_quality/multilevel_brms1_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit1
 p_summary <- posterior_summary(fit1)
-write.csv(p_summary, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms1_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms1_psummary.csv')
 randeff <- ranef(fit1)
 randeff
-write.csv(randeff, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms1_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms1_randeff.csv')
 
 plot(fit1)
 pp_check(fit1)
@@ -262,7 +263,7 @@ condition_text_offsets <- ranef(fit1)$text %>%
   filter(text %in% eyetracking$text) %>% 
   select(text, starts_with("Estimate"))
 condition_text_offsets
-write.csv(condition_text_offsets, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms1_condoffsets.csv')
+write.csv(condition_text_offsets, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms1_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 coef(fit1)$text %>%
   as_tibble(rownames = "text") %>% 
@@ -289,7 +290,7 @@ ggplot(condition_draws, aes(x = b_conditions)) +
 #model participant
 #MFD_ST ~ 1 + condition + text + (1 + condition | participant)
 ####
-fit2 <- brm(formula = pemt_speed ~ 1 + condition + text + (1 + condition | participant), 
+fit2 <- brm(formula = ter_corpus_score ~ 1 + condition + text + (1 + condition  | participant), 
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
             control=list(adapt_delta=0.9), seed = bayes_seed,
@@ -298,7 +299,7 @@ fit2 <- brm(formula = pemt_speed ~ 1 + condition + text + (1 + condition | parti
 fit2
 tab_model(fit2)
 text_summ <-summary(fit2)
-sink("/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/test_R/ter_quality/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -306,27 +307,28 @@ sink()
 fit2
 p_summary <- posterior_summary(fit2)
 p_summary
-write.csv(p_summary, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms2_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms2_psummary.csv')
 #write.csv(text_summ, '/home/mrios/workspace/test_R/quality/multilevel_brms1_summary.txt')
 randeff <- ranef(fit2)
 randeff
-write.csv(randeff, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms2_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms2_randeff.csv')
 plot(fit2)
 pp_check(fit2)
 
 fixef(fit2)
 coef(fit2) 
 extract_random_effects(fit2)
-print(extract_random_effects(fit2), n=42)
+print(extract_random_effects(fit2), n=63)
 
+#conditional_effects(fit2, effects = 'condition:participant', re_formula=NULL)
+#conditional_effects(fit2, effects = 'pemt_speed:participant', re_formula=NULL)
 conditional_effects(fit2)
-
 
 loo2 <- loo(fit2)
 
 loo_cpm <- loo_compare(loo0, loo0b, loo2)
 loo_cpm
-write.csv(loo_cpm, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms_loo_cpm1-2.csv')
+write.csv(loo_cpm, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms_loo_cpm1-2.csv')
 #loo_compare(loo1, loo2)
 #loo_compare(loo0, loo0b, loo1, loo2)
 
@@ -363,7 +365,7 @@ condition_participant_offsets <- ranef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 print(condition_participant_offsets, n=32)
-write.csv(condition_participant_offsets, '/home/mrios/workspace/test_R/prod_haitrans/multilevel_brms2_condoffsets.csv')
+write.csv(condition_participant_offsets, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms2_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 condition_participant_offsets2 <- coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
@@ -371,6 +373,7 @@ condition_participant_offsets2 <- coef(fit2)$participant %>%
   select(participant, starts_with("Estimate"))
 print(condition_participant_offsets2, n=32)
 forest(fit2, pars='conditions')
+#forest(fit2, pars='pemt_speed')
 
 tidy(fit2)
 describe_posterior(fit2)
@@ -389,12 +392,195 @@ condition_cred_int$.lower
 condition_draws %>% 
   # Only look inside the credible interval
   filter(b_conditions >= condition_cred_int$.lower & b_conditions <= condition_cred_int$.upper) %>% 
-  summarize(prop_outside_rope = 1 - sum(b_conditions >= -31.39 & b_conditions <= 31.39) / n())
+  summarize(prop_outside_rope = 1 - sum(b_conditions >= -1.41 & b_conditions <= 1.41) / n())
 #-564.52, 564.52
 ggplot(condition_draws, aes(x = b_conditions)) +
-  stat_halfeye(aes(fill_ramp = stat(x >= 31.39 | x <= -31.39)), fill = "#CCCCCC") +
+  stat_halfeye(aes(fill_ramp = stat(x >= 1.41 | x <= -1.41)), fill = "#CCCCCC") +
   scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
-  annotate(geom = "rect", xmin = -31.39, xmax = 31.39, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
+  annotate(geom = "rect", xmin = -1.41, xmax = 1.41, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
   annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
   labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
+
+#####
+#fit 3
+#####
+
+fit3 <- brm(formula = ter_corpus_score ~ 1 + condition + pemt_speed + (1 + pemt_speed | condition), 
+            data = eyetracking,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            control=list(adapt_delta=0.99), seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit3
+tab_model(fit3)
+text_summ <-summary(fit3)
+sink("/home/mrios/workspace/test_R/ter_quality/multilevel_brms3_sound_summary.txt")
+text_summ
+sink()
+#print(fit2)
+#sjPlot::tab_model(fit2)
+fit3
+p_summary <- posterior_summary(fit3)
+p_summary
+write.csv(p_summary, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms3_sound_psummary.csv')
+#write.csv(text_summ, '/home/mrios/workspace/test_R/quality/multilevel_brms1_summary.txt')
+randeff <- ranef(fit3)
+randeff
+write.csv(randeff, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms3_sound_randeff.csv')
+plot(fit3)
+pp_check(fit3)
+
+fixef(fit3)
+coef(fit3) 
+extract_random_effects(fit3)
+#print(extract_random_effects(fit3), n=63)
+
+conditional_effects(fit3, effects="pemt_speed:condition", re_formula = NULL)
+
+
+loo2 <- loo(fit3)
+
+loo_cpm <- loo_compare(loo0, loo0b, loo2)
+loo_cpm
+write.csv(loo_cpm, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms_sound_loo_cpm1-2.csv')
+#loo_compare(loo1, loo2)
+#loo_compare(loo0, loo0b, loo1, loo2)
+
+
+
+
+#participant level random effects
+condition_participant_offsets <- ranef(fit3)$participant %>%
+  as_tibble(rownames = "participant") %>% 
+  filter(participant %in% eyetracking$participant) %>% 
+  select(participant, starts_with("Estimate"))
+print(condition_participant_offsets, n=32)
+write.csv(condition_participant_offsets, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms3_sound_condoffsets.csv')
+#fixed effect + random offset for text-specific intercepts and slopes.
+condition_participant_offsets3 <- coef(fit3)$participant %>%
+  as_tibble(rownames = "participant") %>% 
+  filter(participant %in% eyetracking$participant) %>% 
+  select(participant, starts_with("Estimate"))
+print(condition_participant_offsets2, n=32)
+forest(fit3, pars='conditions')
+#forest(fit2, pars='pemt_speed')
+
+tidy(fit3)
+describe_posterior(fit3)
+bayestestR::hdi(fit3)
+
+condition_draws <- fit3 %>%
+  spread_draws(b_conditions)
+condition_draws
+
+
+condition_cred_int <- condition_draws %>% 
+  median_hdi()
+condition_cred_int$.lower
+
+
+condition_draws %>% 
+  # Only look inside the credible interval
+  filter(b_conditions >= condition_cred_int$.lower & b_conditions <= condition_cred_int$.upper) %>% 
+  summarize(prop_outside_rope = 1 - sum(b_conditions >= -1.41 & b_conditions <= 1.41) / n())
+#-564.52, 564.52
+ggplot(condition_draws, aes(x = b_conditions)) +
+  stat_halfeye(aes(fill_ramp = stat(x >= 1.41 | x <= -1.41)), fill = "#CCCCCC") +
+  scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
+  annotate(geom = "rect", xmin = -1.41, xmax = 1.41, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
+  annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
+  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
+
+
+#####
+#fit 4
+#####
+
+fit4 <- brm(formula = ter_corpus_score ~ 1 + condition + text + pemt_speed + MFD_ST + (1 + pemt_speed + MFD_ST | condition), 
+            data = eyetracking,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            control=list(adapt_delta=0.9), seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit4
+tab_model(fit4)
+text_summ <-summary(fit4)
+sink("/home/mrios/workspace/test_R/ter_quality/multilevel_brms4_summary.txt")
+text_summ
+sink()
+#print(fit2)
+#sjPlot::tab_model(fit2)
+fit4
+p_summary <- posterior_summary(fit4)
+p_summary
+write.csv(p_summary, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms4_psummary.csv')
+#write.csv(text_summ, '/home/mrios/workspace/test_R/quality/multilevel_brms1_summary.txt')
+randeff <- ranef(fit4)
+randeff
+write.csv(randeff, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms4_randeff.csv')
+plot(fit4)
+pp_check(fit4)
+
+fixef(fit4)
+coef(fit4) 
+extract_random_effects(fit4)
+#print(extract_random_effects(fit3), n=63)
+
+conditional_effects(fit4, effects="pemt_speed:condition", re_formula = NULL)
+conditional_effects(fit4, effects="MFD_ST:condition", re_formula = NULL)
+
+
+loo4 <- loo(fit4)
+
+loo_cpm <- loo_compare(loo0, loo0b, loo3, loo4)
+loo_cpm
+write.csv(loo_cpm, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms_loo_cpm1-2.csv')
+#loo_compare(loo1, loo2)
+#loo_compare(loo0, loo0b, loo1, loo2)
+
+
+
+
+#participant level random effects
+condition_participant_offsets <- ranef(fit4)$participant %>%
+  as_tibble(rownames = "participant") %>% 
+  filter(participant %in% eyetracking$participant) %>% 
+  select(participant, starts_with("Estimate"))
+print(condition_participant_offsets, n=32)
+write.csv(condition_participant_offsets, '/home/mrios/workspace/test_R/ter_quality/multilevel_brms4_condoffsets.csv')
+#fixed effect + random offset for text-specific intercepts and slopes.
+condition_participant_offsets3 <- coef(fit4)$participant %>%
+  as_tibble(rownames = "participant") %>% 
+  filter(participant %in% eyetracking$participant) %>% 
+  select(participant, starts_with("Estimate"))
+print(condition_participant_offsets2, n=32)
+forest(fit4, pars='conditions')
+#forest(fit2, pars='pemt_speed')
+
+tidy(fit4)
+describe_posterior(fit4)
+bayestestR::hdi(fit4)
+
+condition_draws <- fit4 %>%
+  spread_draws(b_conditions)
+condition_draws
+
+
+condition_cred_int <- condition_draws %>% 
+  median_hdi()
+condition_cred_int$.lower
+
+
+condition_draws %>% 
+  # Only look inside the credible interval
+  filter(b_conditions >= condition_cred_int$.lower & b_conditions <= condition_cred_int$.upper) %>% 
+  summarize(prop_outside_rope = 1 - sum(b_conditions >= -1.43 & b_conditions <= 1.43) / n())
+#-564.52, 564.52
+ggplot(condition_draws, aes(x = b_conditions)) +
+  stat_halfeye(aes(fill_ramp = stat(x >= 1.43 | x <= -1.43)), fill = "#CCCCCC") +
+  scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
+  annotate(geom = "rect", xmin = -1.43, xmax = 1.43, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
+  annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
+  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
+
 

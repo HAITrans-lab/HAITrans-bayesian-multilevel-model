@@ -49,6 +49,13 @@ stats <- eyetracking %>%
 stats
 write.csv(stats,'/home/mrios/workspace/test_R/cog_load/summary_stats_tt.csv')
 
+bxp <- ggboxplot(
+  eyetracking, x = "text", y = "MFD_TT",
+  facet.by = "condition", short.panel.labs = FALSE
+)
+bxp
+
+
 ##
 #condition model
 ##
