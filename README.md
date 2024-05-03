@@ -8,6 +8,8 @@ Accepted at: EAMT2024
 
 
 # Requirements
+ - R
+ - R packages list: scripts/previous/sessionInfo.txt
 
 # Results
 
