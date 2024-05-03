@@ -1,4 +1,4 @@
-# HAITrans-bayesian-multilevel-model
+# HAITrans-bayesian-hierharchical-model
 
 Scripts for the reproducing the results of the paper:
 
@@ -14,5 +14,7 @@ Accepted at: EAMT2024
 # Results
 
 Scripts in directory **scripts/EAMT2024**
+
+# Citation
 
 TBA
