@@ -8,6 +8,7 @@ library(sjPlot)
 #install.packages("bayestestR")
 #install.packages("ggdist")
 library(ggdist)
+library(xtable)
 library("bayestestR")
 
 library(brmstools)
@@ -39,7 +40,7 @@ library(ggh4x)
 set.seed(1234) #reproducibility
 bayes_seed <- 1234
 #set_cmdstan_path(path = '/home/mrios/.cmdstan/cmdstan-2.32.2')
-eyetracking <- read.csv('/home/mrios/workspace/test_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
+eyetracking <- read.csv('/home/mrios/workspace/imminent_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking <- eyetracking[!(is.na(eyetracking$PEMT_experience)), ]
 eyetracking <- eyetracking[!(is.na(eyetracking$no_of_searches_in_external_resources)), ]
@@ -51,13 +52,15 @@ stats <- eyetracking %>%
   group_by(condition, text) %>%
   get_summary_stats(quality_score, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/test_R/qualityEAMT2024/summary_stats.csv')
+write.csv(stats,'/home/mrios/workspace/imminent_R/qualityEAMT2024/summary_stats.csv')
 
 
 stats <- eyetracking %>%
   group_by(condition, PEMT_experience) %>%
   get_summary_stats(quality_score, type = "mean_sd")
 stats
+#NOTE print to latex
+print(xtable(stats, type = "latex"), file = "pemtexp.tex")
 
 fit0a <- brm(formula = quality_score ~ 1 + PEMT_experience, #(1 + condition | participant)
              data = eyetracking,
@@ -67,6 +70,17 @@ fit0a <- brm(formula = quality_score ~ 1 + PEMT_experience, #(1 + condition | pa
 )
 fit0a
 conditional_effects(fit0a)
+
+
+fit0 <- brm(formula = quality_score ~ 1 + condition + (1+ condition | participant), #(1 + condition | participant)
+             data = eyetracking,
+             warmup = 1000, iter = 10000, chains = 4, cores = 6,
+             seed = bayes_seed,
+             backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+
 #plot(fit0a)
 
 
@@ -78,14 +92,14 @@ fit0b <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_
 )
 fit0b
 text_summ <-summary(fit0b)
-sink("/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms0b_summary.txt")
+sink("/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms0b_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0b
 p_summary <- posterior_summary(fit0b)
-write.csv(p_summary, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms0b_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms0b_psummary.csv')
 
 plot(fit0b)
 pp_check(fit0b)
@@ -105,7 +119,7 @@ tidy(fit0b)
 
 post_fit0b <- describe_posterior(fit0b)
 post_fit0b
-write.csv(post_fit0b, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms0b_describepost.csv')
+write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms0b_describepost.csv')
 bayestestR::hdi(fit0b)
 
 ####
@@ -122,7 +136,7 @@ fit2 <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_e
 fit2
 #tab_model(fit2)
 text_summ <-summary(fit2)
-sink("/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -130,11 +144,11 @@ sink()
 fit2
 p_summary <- posterior_summary(fit2)
 p_summary
-write.csv(p_summary, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_psummary.csv')
-#write.csv(text_summ, '/home/mrios/workspace/test_R/quality/multilevel_brms1_summary.txt')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms2_psummary.csv')
+#write.csv(text_summ, '/home/mrios/workspace/imminent_R/quality/multilevel_brms1_summary.txt')
 randeff <- ranef(fit2)
 randeff
-write.csv(randeff, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms2_randeff.csv')
 plot(fit2)
 pp_check(fit2)
 
@@ -143,14 +157,23 @@ coef(fit2)
 extract_random_effects(fit2)
 
 
+
 conditional_effects(fit2)
 
+cond <- conditional_effects(fit2)
+plot(cond, theme =  theme( axis.title.x = element_text(size = 20),
+                           axis.title.y = element_text(size = 20),
+                           axis.text = element_text(size = 16)))
 
-loo2 <- loo(fit2)
+#p2 <- p[[1]] +  theme(
+#  legend.text = element_text(size = 20)
+#)
+#p2
+#loo2 <- loo(fit2)
 
 #loo_cpm <- loo_compare(loo1, loo2)
 #loo_cpm
-#write.csv(loo_cpm, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms_loo_cpm1-2.csv')
+#write.csv(loo_cpm, '/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms_loo_cpm1-2.csv')
 #loo_compare(loo0, loo0b, loo1, loo2)
 
 
@@ -162,7 +185,7 @@ condition_participant_offsets <- ranef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 condition_participant_offsets
-write.csv(condition_participant_offsets, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_condoffsets.csv')
+write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms2_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 condition_participant_raneff <- coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
@@ -174,7 +197,7 @@ forest(fit2, pars='conditions')
 
 post_fit2 <- describe_posterior(fit2)
 post_fit2
-write.csv(post_fit2, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_describepost.csv')
+write.csv(post_fit2, '/home/mrios/workspace/imminent_R/qualityEAMT2024/multilevel_brms2_describepost.csv')
 bayestestR::hdi(fit2)
 
 #TODO??? rstan not cmdstan save_pars = save_pars(all = TRUE)
@@ -200,7 +223,9 @@ ggplot(condition_draws, aes(x = b_conditions)) +
   scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
   annotate(geom = "rect", xmin = -0.66, xmax = 0.66, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
   annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
-  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
+  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval") + theme( axis.title.x = element_text(size = 20),
+         axis.title.y = element_text(size = 20),
+         axis.text = element_text(size = 15))
 #p direction
 condition_draws %>% 
   summarize(prop_greater_0 = sum(b_conditions > 0) / n())
@@ -217,7 +242,35 @@ condition_draws %>%
     ylab("quality_score\n") +
     xlab("\ntext") +
     theme_bw() +
-    theme(legend.title = element_blank()))
+    theme(legend.title = element_blank())
+    + theme( axis.title.x = element_text(size = 20),
+                             axis.title.y = element_text(size = 20),
+                             axis.text = element_text(size = 16))
+    )
+
+
+#fit2 priors
+stats <- eyetracking %>%
+  group_by(condition) %>%
+  get_summary_stats(quality_score, type = "mean_sd")
+stats
+
+priors <- c(prior(normal(0, 10), class = b, coef = "conditions"))
+#student_t(3,0,1) student_t(3, 0, 4.6)
+#priors <- c(prior(normal(2, 0.5), class = b, coef = "conditions"))
+#priors <- c(prior(gamma(7.5, 2), class = b, coef = "conditions"))
+
+fit2 <- brm(formula = quality_score ~ 1 + condition + text + (1 + condition | participant), 
+            data = eyetracking, prior=priors,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            control=list(adapt_delta=0.9), seed = bayes_seed,
+          #save_pars = save_pars(all = TRUE),
+            backend = "cmdstanr"
+)
+fit2
+
+describe_posterior(fit2)
+prior_summary(fit2)
 
 
 sessionInfo()

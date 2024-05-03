@@ -35,7 +35,7 @@ library("bayestestR")
 set.seed(1234) #reproducibility
 bayes_seed <- 1234
 #set_cmdstan_path(path = '/home/mrios/.cmdstan/cmdstan-2.32.2')
-eyetracking <- read.csv('/home/mrios/workspace/test_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
+eyetracking <- read.csv('/home/mrios/workspace/imminent_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
 #delete NA
@@ -50,7 +50,7 @@ stats <- eyetracking %>%
   group_by(condition, text) %>%
   get_summary_stats(pemt_speed, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/test_R/prod_haitransEAMT2024/summary_stats_st.csv')
+write.csv(stats,'/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/summary_stats_st.csv')
 
 
 bxp <- ggboxplot(
@@ -58,7 +58,7 @@ bxp <- ggboxplot(
   facet.by = "condition", short.panel.labs = FALSE
 )
 bxp
-ggsave("/home/mrios/workspace/test_R/prod_haitransEAMT2024/boxplot_pemtspeed.pdf")
+ggsave("/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/boxplot_pemtspeed.pdf")
 #
 ###
 #MFD_ST ~ 1 + condition + text 
@@ -72,14 +72,14 @@ fit0b <- brm(formula = pemt_speed ~ 1 + condition + text + no_of_searches_in_ext
 )
 fit0b
 text_summ <-summary(fit0b)
-sink("/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms0b_summary.txt")
+sink("/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms0b_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0b
 p_summary <- posterior_summary(fit0b)
-write.csv(p_summary, '/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms0b_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms0b_psummary.csv')
 
 #plot(fit0b)
 pp_check(fit0b)
@@ -95,7 +95,7 @@ conditional_effects(fit0b)
 describe_posterior(fit0b)
 post_fit0b <- describe_posterior(fit0b)
 post_fit0b
-write.csv(post_fit0b, '/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms0b_describepost.csv')
+write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms0b_describepost.csv')
 bayestestR::hdi(fit0b)
 
 
@@ -138,7 +138,7 @@ fit2
 #r
 #tab_model(fit2)
 text_summ <-summary(fit2)
-sink("/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -146,11 +146,11 @@ sink()
 fit2
 p_summary <- posterior_summary(fit2)
 p_summary
-write.csv(p_summary, '/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms2_psummary.csv')
-#write.csv(text_summ, '/home/mrios/workspace/test_R/quality/multilevel_brms1_summary.txt')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_psummary.csv')
+#write.csv(text_summ, '/home/mrios/workspace/imminent_R/quality/multilevel_brms1_summary.txt')
 randeff <- ranef(fit2)
 randeff
-write.csv(randeff, '/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms2_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_randeff.csv')
 #plot(fit2)
 pp_check(fit2)
 
@@ -173,7 +173,7 @@ condition_participant_offsets <- ranef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 print(condition_participant_offsets, n=32)
-write.csv(condition_participant_offsets, '/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms2_condoffsets.csv')
+write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 condition_participant_offsets2 <- coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
@@ -186,7 +186,7 @@ forest(fit2, pars='conditions')
 #describe_posterior(fit2)
 post_fit2 <- describe_posterior(fit2)
 post_fit2
-write.csv(post_fit2, '/home/mrios/workspace/test_R/prod_haitransEAMT2024/multilevel_brms2_describepost.csv')
+write.csv(post_fit2, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_describepost.csv')
 bayestestR::hdi(fit2)
 
 condition_draws <- fit2 %>%

@@ -13,7 +13,7 @@ library(rstatix)
 
 # long format
 set.seed(123) #reproducibility
-eyetracking <- read.csv('/home/mrios/workspace/test_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
+eyetracking <- read.csv('/home/mrios/workspace/imminent_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
 

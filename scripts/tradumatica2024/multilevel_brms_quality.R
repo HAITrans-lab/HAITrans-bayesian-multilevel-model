@@ -39,9 +39,8 @@ library(ggh4x)
 set.seed(1234) #reproducibility
 bayes_seed <- 1234
 #set_cmdstan_path(path = '/home/mrios/.cmdstan/cmdstan-2.32.2')
-eyetracking <- read.csv('/home/mrios/workspace/test_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
+eyetracking <- read.csv('/home/mrios/workspace/imminent_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
 eyetracking
-eyetracking <- eyetracking[!(is.na(eyetracking$PEMT_experience)), ]
 eyetracking <- eyetracking[!(is.na(eyetracking$no_of_searches_in_external_resources)), ]
 
 eyetracking %>% sample_n_by(condition, text, size = 1)
@@ -51,15 +50,170 @@ stats <- eyetracking %>%
   group_by(condition, text) %>%
   get_summary_stats(quality_score, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/test_R/qualityEAMT2024/summary_stats.csv')
+write.csv(stats,'/home/mrios/workspace/imminent_R/qualityTradumatica2024/summary_stats.csv')
 
 
 stats <- eyetracking %>%
-  group_by(condition, PEMT_experience) %>%
+  group_by(condition, bins_translation_experience) %>%
   get_summary_stats(quality_score, type = "mean_sd")
 stats
 
-fit0a <- brm(formula = quality_score ~ 1 + PEMT_experience, #(1 + condition | participant)
+stats <- eyetracking %>%
+  group_by(condition, bins_PEMT_experience) %>%
+  get_summary_stats(quality_score, type = "mean_sd")
+stats
+
+#######################
+#quality_score ~ 1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience + (1 + condition | participant)
+# family = lognormal(),
+#######################
+fit0 <- brm(formula = ter_corpus_score ~  1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience + (1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience | participant), #(1 + condition | participant)
+             data = eyetracking,
+             warmup = 1000, iter = 10000, chains = 4, cores = 6,
+             seed = bayes_seed,
+             backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+post_fit0 <- describe_posterior(fit0)
+post_fit0
+
+
+#######################
+fit0 <- brm(formula = ter_corpus_score ~ 1 + bins_translation_experience + bins_PEMT_experience, #(1 + condition | participant)
+             data = eyetracking,
+             warmup = 1000, iter = 10000, chains = 4, cores = 6,
+             seed = bayes_seed,
+             backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+post_fit0 <- describe_posterior(fit0)
+post_fit0
+
+#############################
+fit0 <- brm(formula = pemt_speed ~ 1 + bins_translation_experience + bins_PEMT_experience, #(1 + condition | participant)
+            data = eyetracking,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+post_fit0 <- describe_posterior(fit0)
+post_fit0
+
+#######################
+# quality_score ~ 1 + pemt_speed + (1 + pemt_speed | condition)
+##########################
+fit0 <- brm(formula = ter_corpus_score ~ 1 + pemt_speed + bins_translation_experience + bins_PEMT_experience + (1 + pemt_speed + bins_translation_experience + bins_PEMT_experience | condition), #(1 + condition | participant)
+            data = eyetracking,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+post_fit0 <- describe_posterior(fit0)
+post_fit0
+conditional_effects(fit0, effects="pemt_speed:condition", re_formula = NULL)
+conditional_effects(fit0, effects="bins_translation_experience:condition", re_formula = NULL)
+conditional_effects(fit0, effects="bins_PEMT_experience:condition", re_formula = NULL)
+
+########################
+
+fit0 <- brm(formula = ter_corpus_score ~ 1 + condition + bins_translation_experience + bins_PEMT_experience, # + (1 + bins_translation_experience + bins_PEMT_experience | condition), 
+            data = eyetracking,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+post_fit0 <- describe_posterior(fit0)
+post_fit0
+
+#conditional_effects(fit0, effects="bins_translation_experience:condition", re_formula = NULL)
+#conditional_effects(fit0, effects="bins_PEMT_experience:condition", re_formula = NULL)
+
+
+(cond_fit <- eyetracking %>%
+    group_by(condition) %>%
+    add_predicted_draws(fit0) %>%
+    ggplot(aes(x = bins_PEMT_experience, y = ter_corpus_score, color = ordered(condition), fill = ordered(condition))) +
+    stat_lineribbon(aes(y = .prediction), .width = c(.95), alpha = 1/4) +
+    geom_point(data = eyetracking) +
+    scale_fill_brewer(palette = "Set2") +
+    scale_color_brewer(palette = "Dark2") +
+    theme_bw() +
+    ylab("TER score\n") +
+    xlab("\nbins_PEMT_experience") +
+    theme_bw() +
+    theme(legend.title = element_blank()))
+
+(cond_fit <- eyetracking %>%
+    group_by(condition) %>%
+    add_predicted_draws(fit0) %>%
+    ggplot(aes(x = bins_translation_experience, y = ter_corpus_score, color = ordered(condition), fill = ordered(condition))) +
+    stat_lineribbon(aes(y = .prediction), .width = c(.95), alpha = 1/4) +
+    geom_point(data = eyetracking) +
+    scale_fill_brewer(palette = "Set2") +
+    scale_color_brewer(palette = "Dark2") +
+    theme_bw() +
+    ylab("TER score\n") +
+    xlab("\nbins_translation_experience") +
+    theme_bw() +
+    theme(legend.title = element_blank()))
+###############################################
+
+fit0 <- brm(formula = ter_corpus_score ~ 1 + condition + text  + (1 + condition   | bins_PEMT_experience), 
+            data = eyetracking,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+conditional_effects(fit0, effects="condition:bins_PEMT_experience", re_formula = NULL)
+forest(fit0,  pars = "conditions")
+#forest(fit0,  pars = "textt2")
+
+fit0 <- brm(formula = ter_corpus_score ~ 1 + condition + text  + (1 + condition + text  | bins_translation_experience), 
+            data = eyetracking,
+            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+conditional_effects(fit0, effects="condition:bins_translation_experience", re_formula = NULL)
+
+##########################
+
+
+fit0a <- brm(formula = quality_score ~ 1 + bins_translation_experience + bins_PEMT_experience, #(1 + condition | participant)
+             data = eyetracking,
+             warmup = 1000, iter = 10000, chains = 4, cores = 6,
+             seed = bayes_seed,
+             backend = "cmdstanr"
+)
+fit0a
+conditional_effects(fit0a)
+post_fit0a <- describe_posterior(fit0a)
+post_fit0a
+
+
+fit0a <- brm(formula = MFD_ST ~ 1 + bins_translation_experience + bins_PEMT_experience, #(1 + condition | participant)
+             data = eyetracking,
+             warmup = 1000, iter = 10000, chains = 4, cores = 6,
+             seed = bayes_seed,
+             backend = "cmdstanr"
+)
+fit0a
+conditional_effects(fit0a)
+#plot(fit0a)
+
+fit0a <- brm(formula = MFD_TT ~ 1 + bins_translation_experience + bins_PEMT_experience, #(1 + condition | participant)
              data = eyetracking,
              warmup = 1000, iter = 10000, chains = 4, cores = 6,
              seed = bayes_seed,
@@ -70,7 +224,7 @@ conditional_effects(fit0a)
 #plot(fit0a)
 
 
-fit0b <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_external_resources + PEMT_experience, #(1 + condition | participant)
+fit0b <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience, #(1 + condition | participant)
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
             seed = bayes_seed,
@@ -78,14 +232,14 @@ fit0b <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_
 )
 fit0b
 text_summ <-summary(fit0b)
-sink("/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms0b_summary.txt")
+sink("/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms0b_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0b
 p_summary <- posterior_summary(fit0b)
-write.csv(p_summary, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms0b_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms0b_psummary.csv')
 
 plot(fit0b)
 pp_check(fit0b)
@@ -105,14 +259,14 @@ tidy(fit0b)
 
 post_fit0b <- describe_posterior(fit0b)
 post_fit0b
-write.csv(post_fit0b, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms0b_describepost.csv')
+write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms0b_describepost.csv')
 bayestestR::hdi(fit0b)
 
 ####
 #model participant
 #quality_score ~ 1 + condition + text + (1 + condition | participant)
 ####
-fit2 <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_external_resources + PEMT_experience + (1 + condition | participant), 
+fit2 <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience + (1 + condition | participant), 
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
             control=list(adapt_delta=0.9), seed = bayes_seed,
@@ -122,7 +276,7 @@ fit2 <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_e
 fit2
 #tab_model(fit2)
 text_summ <-summary(fit2)
-sink("/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -130,11 +284,11 @@ sink()
 fit2
 p_summary <- posterior_summary(fit2)
 p_summary
-write.csv(p_summary, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_psummary.csv')
-#write.csv(text_summ, '/home/mrios/workspace/test_R/quality/multilevel_brms1_summary.txt')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms2_psummary.csv')
+#write.csv(text_summ, '/home/mrios/workspace/imminent_R/quality/multilevel_brms1_summary.txt')
 randeff <- ranef(fit2)
 randeff
-write.csv(randeff, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms2_randeff.csv')
 plot(fit2)
 pp_check(fit2)
 
@@ -150,7 +304,7 @@ loo2 <- loo(fit2)
 
 #loo_cpm <- loo_compare(loo1, loo2)
 #loo_cpm
-#write.csv(loo_cpm, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms_loo_cpm1-2.csv')
+#write.csv(loo_cpm, '/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms_loo_cpm1-2.csv')
 #loo_compare(loo0, loo0b, loo1, loo2)
 
 
@@ -162,7 +316,7 @@ condition_participant_offsets <- ranef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 condition_participant_offsets
-write.csv(condition_participant_offsets, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_condoffsets.csv')
+write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms2_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 condition_participant_raneff <- coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
@@ -174,7 +328,7 @@ forest(fit2, pars='conditions')
 
 post_fit2 <- describe_posterior(fit2)
 post_fit2
-write.csv(post_fit2, '/home/mrios/workspace/test_R/qualityEAMT2024/multilevel_brms2_describepost.csv')
+write.csv(post_fit2, '/home/mrios/workspace/imminent_R/qualityTradumatica2024/multilevel_brms2_describepost.csv')
 bayestestR::hdi(fit2)
 
 #TODO??? rstan not cmdstan save_pars = save_pars(all = TRUE)

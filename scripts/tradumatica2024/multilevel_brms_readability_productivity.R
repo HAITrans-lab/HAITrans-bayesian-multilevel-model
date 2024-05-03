@@ -35,7 +35,7 @@ library("bayestestR")
 set.seed(1234) #reproducibility
 bayes_seed <- 1234
 #set_cmdstan_path(path = '/home/mrios/.cmdstan/cmdstan-2.32.2')
-eyetracking <- read.csv('/home/mrios/workspace/imminent_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
+eyetracking <- read.csv('/home/mrios/workspace/imminent_R/readability_prod_cogload_quality_results.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
 #delete NA
@@ -47,10 +47,10 @@ eyetracking <- eyetracking[!(is.na(eyetracking$no_of_searches_in_external_resour
 colnames(eyetracking)
 #summary stats
 stats <- eyetracking %>%
-  group_by(condition, text) %>%
+  group_by(condition, text, CAREC) %>%
   get_summary_stats(pemt_speed, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/summary_stats_st.csv')
+write.csv(stats,'/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/summary_stats_st.csv')
 
 
 bxp <- ggboxplot(
@@ -58,26 +58,106 @@ bxp <- ggboxplot(
   facet.by = "condition", short.panel.labs = FALSE
 )
 bxp
-ggsave("/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/boxplot_pemtspeed.pdf")
-#
-#bprior <- c(set_prior("normal(0,10)", class = "b", coef = "conditions"),
-#            set_prior("normal(2,1)", class = "b", coef = "no_of_searches_in_external_resources"),
-#            set_prior("normal(2,1)", class = "b", coef = "PEMT_experiencey"))
-fit0 <- brm(formula = pemt_speed ~ 1 + condition + no_of_searches_in_external_resources + PEMT_experience , #(1 + condition | participant)
+ggsave("/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/boxplot_pemtspeed.pdf")
+#MFD_ST
+fit0 <- brm(formula = MFD_ST ~ 1 + CAREC, #+ (1 + condition + CAREC | participant),
+            family=lognormal(),
+            data = eyetracking,
+            warmup = 1000, iter = 5000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+describe_posterior(fit0)
+
+#MFD_TT
+fit0 <- brm(formula = MFD_TT ~ 1 + CAREC, #+ (1 + condition + CAREC | participant),
+            family=lognormal(),
+            data = eyetracking,
+            warmup = 1000, iter = 5000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit0
+conditional_effects(fit0)
+describe_posterior(fit0)
+#pemt_speed ~ 1 + CAREC 
+fit0 <- brm(formula = pemt_speed ~ 1 + CAREC, #+ (1 + condition + CAREC | participant),
+            family=lognormal(),
              data = eyetracking,
-             #prior = bprior,
              warmup = 1000, iter = 5000, chains = 4, cores = 6,
              seed = bayes_seed,
              backend = "cmdstanr"
 )
 fit0
-
 conditional_effects(fit0)
 describe_posterior(fit0)
-###
-#y ~ 1 + condition + text 
-###
+text_summ <-summary(fit0)
+sink("/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms0_summary.txt")
+text_summ
+#tidy(fit1)
+sink()
+#sjPlot::tab_model(fit1)
+fit0
+p_summary <- posterior_summary(fit0)
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms0_psummary.csv')
 
+#plot(fit0b)
+pp_check(fit0)
+
+fixef(fit0)
+#coef(fit0)  #coef(fit1)$condition TODO
+#coef(fit1)$text[conditions]
+
+conditional_effects(fit0)
+
+describe_posterior(fit0)
+post_fit0 <- describe_posterior(fit0)
+post_fit0
+write.csv(post_fit0, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms0_describepost.csv')
+bayestestR::hdi(fit0)
+
+#quality
+
+fit1 <- brm(formula = quality_score ~ 1 + CAREC, #(1 + condition | participant)
+            family=lognormal(),
+            data = eyetracking,
+            warmup = 1000, iter = 5000, chains = 4, cores = 6,
+            seed = bayes_seed,
+            backend = "cmdstanr"
+)
+fit1
+text_summ <-summary(fit1)
+sink("/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms1_summary.txt")
+text_summ
+#tidy(fit1)
+sink()
+#sjPlot::tab_model(fit1)
+fit1
+p_summary <- posterior_summary(fit1)
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms1_psummary.csv')
+
+#plot(fit0b)
+pp_check(fit1)
+
+fixef(fit1)
+#coef(fit0)  #coef(fit1)$condition TODO
+#coef(fit1)$text[conditions]
+
+conditional_effects(fit1)
+
+describe_posterior(fit1)
+post_fit1 <- describe_posterior(fit1)
+post_fit1
+write.csv(post_fit1, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms1_describepost.csv')
+bayestestR::hdi(fit1)
+
+
+
+###
+#MFD_ST ~ 1 + condition + text 
+###
 
 fit0b <- brm(formula = pemt_speed ~ 1 + condition + text + no_of_searches_in_external_resources + PEMT_experience, #(1 + condition | participant)
             data = eyetracking,
@@ -87,14 +167,14 @@ fit0b <- brm(formula = pemt_speed ~ 1 + condition + text + no_of_searches_in_ext
 )
 fit0b
 text_summ <-summary(fit0b)
-sink("/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms0b_summary.txt")
+sink("/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms0b_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0b
 p_summary <- posterior_summary(fit0b)
-write.csv(p_summary, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms0b_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms0b_psummary.csv')
 
 #plot(fit0b)
 pp_check(fit0b)
@@ -110,7 +190,7 @@ conditional_effects(fit0b)
 describe_posterior(fit0b)
 post_fit0b <- describe_posterior(fit0b)
 post_fit0b
-write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms0b_describepost.csv')
+write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms0b_describepost.csv')
 bayestestR::hdi(fit0b)
 
 
@@ -153,7 +233,7 @@ fit2
 #r
 #tab_model(fit2)
 text_summ <-summary(fit2)
-sink("/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -161,11 +241,11 @@ sink()
 fit2
 p_summary <- posterior_summary(fit2)
 p_summary
-write.csv(p_summary, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms2_psummary.csv')
 #write.csv(text_summ, '/home/mrios/workspace/imminent_R/quality/multilevel_brms1_summary.txt')
 randeff <- ranef(fit2)
 randeff
-write.csv(randeff, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms2_randeff.csv')
 #plot(fit2)
 pp_check(fit2)
 
@@ -174,15 +254,10 @@ coef(fit2)
 extract_random_effects(fit2)
 print(extract_random_effects(fit2), n=42)
 
-cond <- conditional_effects(fit2)
+conditional_effects(fit2)
 
-plot(cond, theme =  theme( axis.title.x = element_text(size = 20),
-                           axis.title.y = element_text(size = 20),
-                           axis.text = element_text(size = 16)))
 
-forest(fit2, pars = "Intercept")
 
-forest(fit2, pars = "conditions")
 
 
 
@@ -193,7 +268,7 @@ condition_participant_offsets <- ranef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 print(condition_participant_offsets, n=32)
-write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_condoffsets.csv')
+write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms2_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 condition_participant_offsets2 <- coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
@@ -206,7 +281,7 @@ forest(fit2, pars='conditions')
 #describe_posterior(fit2)
 post_fit2 <- describe_posterior(fit2)
 post_fit2
-write.csv(post_fit2, '/home/mrios/workspace/imminent_R/prod_haitransEAMT2024/multilevel_brms2_describepost.csv')
+write.csv(post_fit2, '/home/mrios/workspace/imminent_R/read_prod_haitransEAMT2024/multilevel_brms2_describepost.csv')
 bayestestR::hdi(fit2)
 
 condition_draws <- fit2 %>%
@@ -229,9 +304,7 @@ ggplot(condition_draws, aes(x = b_conditions)) +
   scale_fill_ramp_discrete(from = "darkgrey", guide = "none") +
   annotate(geom = "rect", xmin = -31.39, xmax = 31.39, ymin = -Inf, ymax = Inf, fill = "darkred", alpha = 0.3) +
   annotate(geom = "label", x = 0, y = 0.75, label = "ROPE") +
-  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval") + theme( axis.title.x = element_text(size = 20),
-         axis.title.y = element_text(size = 20),
-         axis.text = element_text(size = 15))
+  labs(caption = "Point shows median value;\nthick black bar shows 66% credible interval;\nthin black bar shows 95% credible interval")
 
 
 (cond_fit <- eyetracking %>%
@@ -246,10 +319,6 @@ ggplot(condition_draws, aes(x = b_conditions)) +
     ylab("pemt_speed\n") +
     xlab("\ntext") +
     theme_bw() +
-    theme(legend.title = element_blank())
-    + theme( axis.title.x = element_text(size = 20),
-           axis.title.y = element_text(size = 20),
-           axis.text = element_text(size = 16))
-  )
+    theme(legend.title = element_blank()))
 
 #plot(marginal_effects(fit2),points=T)
