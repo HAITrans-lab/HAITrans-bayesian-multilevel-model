@@ -1,5 +1,5 @@
 library(brms)
-library(cmdstanr)
+#library(cmdstanr)
 library(tidyverse)
 library(sjPlot)
 #install.packages("tidybayes")
@@ -57,11 +57,31 @@ stats <- eyetracking %>%
   group_by(condition, bins_translation_experience) %>%
   get_summary_stats(quality_score, type = "mean_sd")
 stats
-
+write.csv(stats,'/home/mrios/workspace/imminent_R/qualityTradumatica2024/summary_stats-bins-trexp.csv')
 stats <- eyetracking %>%
   group_by(condition, bins_PEMT_experience) %>%
   get_summary_stats(quality_score, type = "mean_sd")
 stats
+write.csv(stats,'/home/mrios/workspace/imminent_R/qualityTradumatica2024/summary_stats-bins-pemtexp.csv')
+
+
+eyetracking$bins_PEMT_experience <- factor(eyetracking$bins_PEMT_experience , levels=c("y0", "y1", "y1_2", "y2_5", "y5_8", "y8_11"))
+bxp <- ggboxplot(
+  eyetracking, x = "bins_PEMT_experience", y = "quality_score",
+  facet.by = "condition")  + theme( axis.title.x = element_text(size = 20),
+            axis.title.y = element_text(size = 20),
+            axis.text = element_text(size = 16))
+bxp
+ggsave("/home/mrios/workspace/imminent_R/qualityTradumatica2024/boxplot_pemtspeed.png")
+
+eyetracking$bins_translation_experience <- factor(eyetracking$bins_translation_experience , levels=c("y3_5", "y5_8", "y8_11", "yp11"))
+bxp <- ggboxplot(
+  eyetracking, x = "bins_translation_experience", y = "quality_score",
+  facet.by = "condition")  + theme( axis.title.x = element_text(size = 20),
+                                    axis.title.y = element_text(size = 20),
+                                    axis.text = element_text(size = 16))
+bxp
+ggsave("/home/mrios/workspace/imminent_R/qualityTradumatica2024/boxplot_tr_pemtspeed.png")
 
 #######################
 #quality_score ~ 1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience + (1 + condition | participant)
@@ -70,8 +90,7 @@ stats
 fit0 <- brm(formula = ter_corpus_score ~  1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience + (1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience | participant), #(1 + condition | participant)
              data = eyetracking,
              warmup = 1000, iter = 10000, chains = 4, cores = 6,
-             seed = bayes_seed,
-             backend = "cmdstanr"
+             seed = bayes_seed
 )
 fit0
 conditional_effects(fit0)
@@ -268,10 +287,8 @@ bayestestR::hdi(fit0b)
 ####
 fit2 <- brm(formula = quality_score ~ 1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience + (1 + condition | participant), 
             data = eyetracking,
-            warmup = 1000, iter = 10000, chains = 4, cores = 6,
+            warmup = 1000, iter = 10000, chains = 4, cores = 3,
             control=list(adapt_delta=0.9), seed = bayes_seed,
-            #save_pars = save_pars(all = TRUE),
-            backend = "cmdstanr"
             )
 fit2
 #tab_model(fit2)
@@ -297,8 +314,11 @@ coef(fit2)
 extract_random_effects(fit2)
 
 
-conditional_effects(fit2)
-
+#conditional_effects(fit2)
+cond <- conditional_effects(fit2)
+plot(cond, theme =  theme( axis.title.x = element_text(size = 20),
+                           axis.title.y = element_text(size = 20),
+                           axis.text = element_text(size = 16)))
 
 loo2 <- loo(fit2)
 

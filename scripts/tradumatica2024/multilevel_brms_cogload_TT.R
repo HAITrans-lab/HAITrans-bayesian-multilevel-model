@@ -49,13 +49,25 @@ stats <- eyetracking %>%
   group_by(condition, text) %>%
   get_summary_stats(MFD_TT, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/summary_stats_tt.csv')
+write.csv(stats,'/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/summary_stats_tt.csv')
 
+eyetracking$bins_PEMT_experience <- factor(eyetracking$bins_PEMT_experience , levels=c("y0", "y1", "y1_2", "y2_5", "y5_8", "y8_11"))
 bxp <- ggboxplot(
-  eyetracking, x = "text", y = "MFD_TT",
-  facet.by = "condition", short.panel.labs = FALSE
-)
+  eyetracking, x = "bins_PEMT_experience", y = "MFD_TT",
+  facet.by = "condition")  + theme( axis.title.x = element_text(size = 20),
+                                    axis.title.y = element_text(size = 20),
+                                    axis.text = element_text(size = 16))
 bxp
+ggsave("/home/mrios/workspace/imminent_R/mfd-ttTradumatica2024/boxplot_pemtspeed.png")
+
+eyetracking$bins_translation_experience <- factor(eyetracking$bins_translation_experience , levels=c("y3_5", "y5_8", "y8_11", "yp11"))
+bxp <- ggboxplot(
+  eyetracking, x = "bins_translation_experience", y = "MFD_TT",
+  facet.by = "condition")  + theme( axis.title.x = element_text(size = 20),
+                                    axis.title.y = element_text(size = 20),
+                                    axis.text = element_text(size = 16))
+bxp
+ggsave("/home/mrios/workspace/imminent_R/mfd-ttTradumatica2024/boxplot_tr_pemtspeed.png")
 
 
 ###
@@ -70,14 +82,14 @@ fit0b <- brm(formula = MFD_TT ~ 1 + condition + text + no_of_searches_in_externa
 )
 fit0b
 text_summ <-summary(fit0b)
-sink("/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms0b_summary.txt")
+sink("/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms0b_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0b
 p_summary <- posterior_summary(fit0b)
-write.csv(p_summary, '/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms0b_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms0b_psummary.csv')
 
 
 pp_check(fit0b)
@@ -93,7 +105,7 @@ conditional_effects(fit0b)
 describe_posterior(fit0b)
 post_fit0b <- describe_posterior(fit0b)
 post_fit0b
-write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms0b_describepost.csv')
+write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms0b_describepost.csv')
 bayestestR::hdi(fit0b)
 
 ####
@@ -110,7 +122,7 @@ fit2 <- brm(formula = MFD_TT ~ 1 + condition + text  + no_of_searches_in_externa
 fit2
 
 text_summ <-summary(fit2)
-sink("/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -118,11 +130,11 @@ sink()
 fit2
 p_summary <- posterior_summary(fit2)
 p_summary
-write.csv(p_summary, '/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms2_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms2_psummary.csv')
 #write.csv(text_summ, '/home/mrios/workspace/imminent_R/quality/multilevel_brms1_summary.txt')
 randeff <- ranef(fit2)
 randeff
-write.csv(randeff, '/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms2_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms2_randeff.csv')
 #plot(fit2)
 pp_check(fit2)
 
@@ -142,7 +154,7 @@ condition_participant_offsets <- ranef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 condition_participant_offsets
-write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms2_condoffsets.csv')
+write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms2_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
@@ -155,7 +167,7 @@ tidy(fit2)
 describe_posterior(fit2)
 post_fit2 <- describe_posterior(fit2)
 post_fit2
-write.csv(post_fit2, '/home/mrios/workspace/imminent_R/cog_load-TTEAMT024/multilevel_brms2_describepost.csv')
+write.csv(post_fit2, '/home/mrios/workspace/imminent_R/cog_load-TTTradumatica24/multilevel_brms2_describepost.csv')
 bayestestR::hdi(fit2)
 #-6.28, 6.28
 condition_draws <- fit2 %>%
