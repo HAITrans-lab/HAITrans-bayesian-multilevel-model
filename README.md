@@ -1,4 +1,4 @@
-# HAITrans-bayesian-multilevel-model
+# HAITrans-bayesian-hierharchical-model
 
 Scripts for the reproducing the results of the paper:
 
@@ -8,9 +8,13 @@ Accepted at: EAMT2024
 
 
 # Requirements
+ - R
+ - R packages list: scripts/previous/sessionInfo.txt
 
 # Results
 
 Scripts in directory **scripts/EAMT2024**
+
+# Citation
 
 TBA
