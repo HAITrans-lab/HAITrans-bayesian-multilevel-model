@@ -40,45 +40,28 @@ library(modelsummary)
 set.seed(1234) #reproducibility
 bayes_seed <- 1234
 #set_cmdstan_path(path = '/home/mrios/.cmdstan/cmdstan-2.32.2')
-eyetracking <- read.csv('/home/mrios/workspace/imminent_R/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
+eyetracking <- read.csv('/home/mrios/workspace/imminent_R/Tradumatica_v2/prod_cogload_quality_results.csv', header = TRUE, sep = ",")
 eyetracking
 eyetracking %>% sample_n_by(condition, text, size = 1)
 #delete NA
 #eyetracking <- na.omit(eyetracking)
-eyetracking <- eyetracking[!(is.na(eyetracking$MFD_ST)), ]
-eyetracking <- eyetracking[!(is.na(eyetracking$PEMT_experience)), ]
-eyetracking <- eyetracking[!(is.na(eyetracking$no_of_searches_in_external_resources)), ]
+eyetracking <- eyetracking[!(is.na(eyetracking$MFD_TT)), ]
+
 colnames(eyetracking)
 #summary stats
 stats <- eyetracking %>%
   group_by(condition, text) %>%
-  get_summary_stats(MFD_ST, type = "mean_sd")
+  get_summary_stats(MFD_TT, type = "mean_sd")
 stats
-write.csv(stats,'/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/summary_stats_st.csv')
+write.csv(stats,'/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/summary_stats_st.csv')
 
-eyetracking$bins_PEMT_experience <- factor(eyetracking$bins_PEMT_experience , levels=c("y0", "y1", "y1_2", "y2_5", "y5_8", "y8_11"))
-bxp <- ggboxplot(
-  eyetracking, x = "bins_PEMT_experience", y = "MFD_ST",
-  facet.by = "condition")  + theme( axis.title.x = element_text(size = 20),
-                                    axis.title.y = element_text(size = 20),
-                                    axis.text = element_text(size = 16))
-bxp
-ggsave("/home/mrios/workspace/imminent_R/mfd-stTradumatica2024/boxplot_pemtspeed.png")
 
-eyetracking$bins_translation_experience <- factor(eyetracking$bins_translation_experience , levels=c("y3_5", "y5_8", "y8_11", "yp11"))
-bxp <- ggboxplot(
-  eyetracking, x = "bins_translation_experience", y = "MFD_ST",
-  facet.by = "condition")  + theme( axis.title.x = element_text(size = 20),
-                                    axis.title.y = element_text(size = 20),
-                                    axis.text = element_text(size = 16))
-bxp
-ggsave("/home/mrios/workspace/imminent_R/mfd-stTradumatica2024/boxplot_tr_pemtspeed.png")
 
 ###
-#MFD_ST ~ 1 + condition + text 
+#MFD_TT ~ 1 + condition + text 
 ###
 
-fit0b <- brm(formula = MFD_ST ~ 1 + condition + text + no_of_searches_in_external_resources + PEMT_experience, #(1 + condition | participant)
+fit0b <- brm(formula = MFD_TT ~ 1 + condition + text + no_of_searches_in_external_resources + PEMT_experience, #(1 + condition | participant)
             data = eyetracking,
             warmup = 1000, iter = 5000, chains = 4, cores = 6,
             seed = bayes_seed,
@@ -86,14 +69,14 @@ fit0b <- brm(formula = MFD_ST ~ 1 + condition + text + no_of_searches_in_externa
 )
 fit0b
 text_summ <-summary(fit0b)
-sink("/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms0b_summary.txt")
+sink("/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms0b_summary.txt")
 text_summ
 #tidy(fit1)
 sink()
 #sjPlot::tab_model(fit1)
 fit0b
 p_summary <- posterior_summary(fit0b)
-write.csv(p_summary, '/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms0b_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms0b_psummary.csv')
 
 
 pp_check(fit0b)
@@ -109,21 +92,21 @@ conditional_effects(fit0b)
 describe_posterior(fit0b)
 post_fit0b <- describe_posterior(fit0b)
 post_fit0b
-write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms0b_describepost.csv')
+write.csv(post_fit0b, '/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms0b_describepost.csv')
 bayestestR::hdi(fit0b)
 
 ####
 #model participant
-#MFD_ST ~ 1 + condition + text + (1 + condition | participant)
+#MFD_TT ~ 1 + condition + text + (1 + condition | participant)
 ####
-fit2 <- brm(formula = MFD_ST ~1 + condition + text + no_of_searches_in_external_resources + bins_translation_experience + bins_PEMT_experience + (1 + condition | participant), 
+fit2 <- brm(formula = MFD_TT ~1 + condition + text + no_of_searches_in_external_resources + translation_years + PEMT_years + (1 + condition | participant), 
             data = eyetracking,
             warmup = 1000, iter = 10000, chains = 4, cores = 6,
             control=list(adapt_delta=0.9), seed = bayes_seed
             )
 
 fit2
-tab_model(fit2, file="/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/tab_st.html")
+tab_model(fit2, file="/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/tab_st.html")
 #modelsummary(fit2)
 #r_fit2 <- fit2 %>% 
 #  tidy() %>% 
@@ -134,7 +117,7 @@ tab_model(fit2, file="/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/
 
 
 text_summ <-summary(fit2)
-sink("/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms2_summary.txt")
+sink("/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms2_summary.txt")
 text_summ
 sink()
 #print(fit2)
@@ -142,17 +125,17 @@ sink()
 fit2
 p_summary <- posterior_summary(fit2)
 p_summary
-write.csv(p_summary, '/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms2_psummary.csv')
+write.csv(p_summary, '/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms2_psummary.csv')
 #write.csv(text_summ, '/home/mrios/workspace/imminent_R/quality/multilevel_brms1_summary.txt')
 
 post_fit2 <- describe_posterior(fit2)
 post_fit2
-write.csv(post_fit2, '/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms2_describepost.csv')
+write.csv(post_fit2, '/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms2_describepost.csv')
 bayestestR::hdi(fit2)
 
 randeff <- ranef(fit2)
 randeff
-write.csv(randeff, '/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms2_randeff.csv')
+write.csv(randeff, '/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms2_randeff.csv')
 #plot(fit2)
 pp_check(fit2)
 
@@ -172,7 +155,7 @@ condition_participant_offsets <- ranef(fit2)$participant %>%
   filter(participant %in% eyetracking$participant) %>% 
   select(participant, starts_with("Estimate"))
 condition_participant_offsets
-write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms2_condoffsets.csv')
+write.csv(condition_participant_offsets, '/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms2_condoffsets.csv')
 #fixed effect + random offset for text-specific intercepts and slopes.
 coef(fit2)$participant %>%
   as_tibble(rownames = "participant") %>% 
@@ -185,7 +168,7 @@ tidy(fit2)
 describe_posterior(fit2)
 post_fit2 <- describe_posterior(fit2)
 post_fit2
-write.csv(post_fit2, '/home/mrios/workspace/imminent_R/cog_load-STTradumatica24/multilevel_brms2_describepost.csv')
+write.csv(post_fit2, '/home/mrios/workspace/imminent_R/Tradumatica_v2/cog_load-TTTradumatica24/multilevel_brms2_describepost.csv')
 bayestestR::hdi(fit2)
 #-6.28, 6.28
 condition_draws <- fit2 %>%
@@ -211,13 +194,13 @@ ggplot(condition_draws, aes(x = b_conditions)) +
 (cond_fit <- eyetracking %>%
     group_by(condition) %>%
     add_predicted_draws(fit2) %>%
-    ggplot(aes(x = text, y = MFD_ST, color = ordered(condition), fill = ordered(condition))) +
+    ggplot(aes(x = text, y = MFD_TT, color = ordered(condition), fill = ordered(condition))) +
     stat_lineribbon(aes(y = .prediction), .width = c(.95), alpha = 1/4) +
     geom_point(data = eyetracking) +
     scale_fill_brewer(palette = "Set2") +
     scale_color_brewer(palette = "Dark2") +
     theme_bw() +
-    ylab("MFD_ST\n") +
+    ylab("MFD_TT\n") +
     xlab("\ntext") +
     theme_bw() +
     theme(legend.title = element_blank()))
