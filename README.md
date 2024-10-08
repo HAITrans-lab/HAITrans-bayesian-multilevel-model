@@ -17,4 +17,4 @@ Scripts in directory **scripts/EAMT2024**
 
 # Citation
 
-TBA
+[Bayesian Hierarchical Modelling for Analysing the Effect of Speech Synthesis on Post-Editing Machine Translation](https://aclanthology.org/2024.eamt-1.38/)
